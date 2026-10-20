@@ -1,11 +1,13 @@
+
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "FleetDash backend",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node dist/server.js",
+    "dev": "nodemon --watch src --ext ts --exec \"tsc && node dist/server.js\"",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +15,14 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^16.0.0",
     "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "nodemon": "^3.1.14",
+    "typescript": "^7.0.2"
   }
 }
