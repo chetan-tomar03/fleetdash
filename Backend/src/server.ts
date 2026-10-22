@@ -3,12 +3,14 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import { Server } from "socket.io";
+import telemetryRouter from "./routes/telemetry";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/telemetry", telemetryRouter);
 
 app.get("/", (_req, res) => {
   res.json({
