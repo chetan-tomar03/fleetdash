@@ -1,19 +1,20 @@
-import express from "express";
-import cors from "cors";
+import "dotenv/config";
+import app from "./app";
+import { connectDB } from "./config/db";
 
-const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
-app.use(cors());
-app.use(express.json());
+async function startServer(): Promise<void> {
+  try {
+    await connectDB();
 
-app.get("/", (_req, res) => {
-  res.json({
-    success: true,
-    message: "FleetDash backend is running",
-  });
-});
+    app.listen(PORT, () => {
+      console.log(`FleetDash backend running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start FleetDash backend:", error);
+    process.exit(1);
+  }
+}
 
-app.listen(PORT, () => {
-  console.log(`FleetDash backend running on port ${PORT}`);
-});
+startServer();
