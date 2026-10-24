@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
-import { AlertsPanel } from './components/AlertsPanel';
-import { Header } from './components/Header';
 import { MapArea } from './components/MapArea';
-import { Sidebar } from './components/Sidebar';
 import { env } from './config/env';
-import { MOCK_ALERTS } from './data/mockAlerts';
 import { useMockTelemetry } from './hooks/useMockTelemetry';
 import { useTelemetrySocket } from './hooks/useTelemetrySocket';
 import { renderCounts } from './lib/renderProbe';
+import { DashboardPage } from './pages/DashboardPage';
 import type { ConnectionStatus } from './types/telemetry';
 
 export default function App() {
@@ -22,14 +19,5 @@ export default function App() {
 
   const status: ConnectionStatus = env.useMock ? 'mock' : socketStatus;
 
-  return (
-    <div className="app">
-      <Header status={status} />
-      <div className="layout">
-        <Sidebar status={status} />
-        <MapArea />
-        <AlertsPanel alerts={MOCK_ALERTS} />
-      </div>
-    </div>
-  );
+  return <DashboardPage status={status} map={<MapArea />} />;
 }
