@@ -9,7 +9,9 @@ interface SparklineProps {
 }
 
 export function Sparkline({ data, tone, width = 120, height = 48 }: SparklineProps) {
-  const gradientId = `spark-${useId().replace(/:/g, '')}`;
+  // useId() can return characters (like ":" or "«") that are unsafe inside url(#...).
+  // Keep letters and digits only.
+  const gradientId = `spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
 
   if (data.length < 2) {
     return null;
@@ -17,7 +19,7 @@ export function Sparkline({ data, tone, width = 120, height = 48 }: SparklinePro
 
   const min = Math.min(...data);
   const max = Math.max(...data);
-  const range = max - min || 1;
+  const range = max - min || 1; // avoids dividing by zero when all values are equal
   const padding = 3;
 
   const points = data.map((value, index) => {

@@ -7,6 +7,12 @@ interface PerformanceCardProps {
   data: PerformanceBreakdown;
 }
 
+interface PercentShare {
+  label: string;
+  percent: number;
+  tone: Tone;
+}
+
 interface BreakdownRow {
   label: string;
   value: string;
@@ -14,10 +20,21 @@ interface BreakdownRow {
 }
 
 export function PerformanceCard({ data }: PerformanceCardProps) {
+  // This one list feeds both the donut chart and the breakdown list.
+  const shares: PercentShare[] = [
+    { label: 'On Time', percent: data.onTime, tone: 'success' },
+    { label: 'Delayed', percent: data.delayed, tone: 'info' },
+    { label: 'Cancelled', percent: data.cancelled, tone: 'warning' },
+  ];
+
+  const segments = shares.map((share) => ({ value: share.percent, tone: share.tone }));
+
   const rows: BreakdownRow[] = [
-    { label: 'On Time', value: `${data.onTime}%`, tone: 'success' },
-    { label: 'Delayed', value: `${data.delayed}%`, tone: 'info' },
-    { label: 'Cancelled', value: `${data.cancelled}%`, tone: 'warning' },
+    ...shares.map((share) => ({
+      label: share.label,
+      value: `${share.percent}%`,
+      tone: share.tone,
+    })),
     { label: 'Total Trips', value: String(data.totalTrips), tone: 'muted' },
   ];
 
@@ -33,13 +50,9 @@ export function PerformanceCard({ data }: PerformanceCardProps) {
     >
       <div className="fd-performance">
         <DonutChart
-          segments={[
-            { value: data.onTime, tone: 'success' },
-            { value: data.delayed, tone: 'info' },
-            { value: data.cancelled, tone: 'warning' },
-          ]}
+          segments={segments}
           centerValue={`${data.onTime}%`}
-                   centerLabel="On-Time Delivery"
+          centerLabel="On-Time Delivery"
           size={124}
           thickness={11}
         />

@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { Tone } from '../../types/dashboard';
 
 export interface DonutSegment {
@@ -24,12 +25,16 @@ export function DonutChart({
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  // Each arc starts where the previous one ended.
+  const arcs: ReactElement[] = [];
   let offset = 0;
-  const arcs = segments.map((segment) => {
-    const length = (segment.value / 100) * circumference;
-    const arc = (
+
+  segments.forEach((segment, index) => {
+    const arcLength = (segment.value / 100) * circumference;
+
+    arcs.push(
       <circle
-        key={segment.tone}
+        key={`${segment.tone}-${index}`}
         className={`fd-tone-${segment.tone}`}
         cx={center}
         cy={center}
@@ -37,12 +42,12 @@ export function DonutChart({
         fill="none"
         stroke="currentColor"
         strokeWidth={thickness}
-        strokeDasharray={`${length} ${circumference - length}`}
+        strokeDasharray={`${arcLength} ${circumference - arcLength}`}
         strokeDashoffset={-offset}
-      />
+      />,
     );
-    offset += length;
-    return arc;
+
+    offset += arcLength;
   });
 
   return (

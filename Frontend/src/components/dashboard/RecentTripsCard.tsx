@@ -1,6 +1,7 @@
-import { ArrowRight, Truck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { Card } from './Card';
 import { StatusBadge } from './StatusBadge';
+import { ViewAllButton } from './ViewAllButton';
 import type { RecentTrip } from '../../types/dashboard';
 
 interface RecentTripsCardProps {
@@ -9,15 +10,7 @@ interface RecentTripsCardProps {
 
 export function RecentTripsCard({ trips }: RecentTripsCardProps) {
   return (
-    <Card
-      title="Recent Trips"
-      className="fd-card--fill"
-      action={
-        <button type="button" className="fd-link">
-          View All <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      }
-    >
+    <Card title="Recent Trips" className="fd-card--fill" action={<ViewAllButton />}>
       {trips.length === 0 ? (
         <div className="fd-empty">No trips yet today.</div>
       ) : (

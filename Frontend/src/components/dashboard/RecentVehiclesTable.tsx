@@ -1,6 +1,7 @@
-import { ArrowRight, Truck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { Card } from './Card';
 import { StatusBadge } from './StatusBadge';
+import { ViewAllButton } from './ViewAllButton';
 import { VEHICLE_STATE_META } from '../../data/dashboardMock';
 import type { RecentVehicle } from '../../types/dashboard';
 
@@ -10,14 +11,7 @@ interface RecentVehiclesTableProps {
 
 export function RecentVehiclesTable({ vehicles }: RecentVehiclesTableProps) {
   return (
-    <Card
-      title="Recent Vehicles"
-      action={
-        <button type="button" className="fd-link">
-          View All <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      }
-    >
+    <Card title="Recent Vehicles" action={<ViewAllButton />}>
       {vehicles.length === 0 ? (
         <div className="fd-empty">No recent vehicles.</div>
       ) : (
@@ -34,8 +28,9 @@ export function RecentVehiclesTable({ vehicles }: RecentVehiclesTableProps) {
             </thead>
             <tbody>
               {vehicles.map((vehicle) => {
-                const meta = VEHICLE_STATE_META[vehicle.state];
+                const stateMeta = VEHICLE_STATE_META[vehicle.state];
                 const iconTone = vehicle.state === 'maintenance' ? 'error' : 'info';
+
                 return (
                   <tr key={vehicle.id}>
                     <td>
@@ -48,7 +43,7 @@ export function RecentVehiclesTable({ vehicles }: RecentVehiclesTableProps) {
                     </td>
                     <td>{vehicle.driver}</td>
                     <td>
-                      <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+                      <StatusBadge tone={stateMeta.tone}>{stateMeta.label}</StatusBadge>
                     </td>
                     <td>{vehicle.location}</td>
                     <td>{vehicle.updated}</td>
