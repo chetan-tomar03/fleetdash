@@ -36,7 +36,7 @@ function formatDate(date: Date): string {
 
 interface DashboardPageProps {
   status: ConnectionStatus;
-  map: ReactNode; // your existing, untouched map element
+  map: ReactNode; // the live map element, shown inside MapCard
 }
 
 export function DashboardPage({ status, map }: DashboardPageProps) {
@@ -47,7 +47,7 @@ export function DashboardPage({ status, map }: DashboardPageProps) {
       <SidebarNav />
 
       <div className="fd-content">
-        <TopBar status={status} />
+        <TopBar status={status} user={CURRENT_USER} />
 
         <div className="fd-page">
           <div className="fd-welcome">

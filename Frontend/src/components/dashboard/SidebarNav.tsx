@@ -1,6 +1,10 @@
 import { Truck } from 'lucide-react';
 import { NAV_ITEMS } from '../../data/dashboardMock';
 
+// There is no router yet, so "Dashboard" is always the active item.
+// When routes are added, replace this with the current route.
+const ACTIVE_ITEM_ID = 'dashboard';
+
 export function SidebarNav() {
   return (
     <aside className="fd-sidebar">
@@ -17,7 +21,8 @@ export function SidebarNav() {
         <ul className="fd-nav">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = item.id === 'dashboard';
+            const isActive = item.id === ACTIVE_ITEM_ID;
+
             return (
               <li key={item.id}>
                 <button

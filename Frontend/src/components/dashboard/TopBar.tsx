@@ -1,13 +1,14 @@
 import { Bell, ChevronDown, Search } from 'lucide-react';
 import { ConnectionBadge } from '../ConnectionBadge';
-import { CURRENT_USER } from '../../data/dashboardMock';
+import type { CurrentUser } from '../../types/dashboard';
 import type { ConnectionStatus } from '../../types/telemetry';
 
 interface TopBarProps {
   status: ConnectionStatus;
+  user: CurrentUser;
 }
 
-export function TopBar({ status }: TopBarProps) {
+export function TopBar({ status, user }: TopBarProps) {
   return (
     <header className="fd-topbar">
       <label className="fd-search">
@@ -26,10 +27,10 @@ export function TopBar({ status }: TopBarProps) {
           <span className="fd-icon-btn__dot" />
         </button>
         <button type="button" className="fd-user">
-          <span className="fd-user__avatar">{CURRENT_USER.initials}</span>
+          <span className="fd-user__avatar">{user.initials}</span>
           <span className="fd-user__meta">
-            <strong>{CURRENT_USER.name}</strong>
-            <small>{CURRENT_USER.role}</small>
+            <strong>{user.name}</strong>
+            <small>{user.role}</small>
           </span>
           <ChevronDown size={16} aria-hidden="true" />
         </button>
