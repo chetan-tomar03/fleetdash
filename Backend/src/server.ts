@@ -1,29 +1,14 @@
 import "dotenv/config";
 import http from "http";
-import express from "express";
-import cors from "cors";
 import { Server } from "socket.io";
-import telemetryRouter from "./routes/telemetry";
+import app from "./app";
+import { connectDB } from "./config/db";
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors());
-app.use(express.json());
-app.use("/api/telemetry", telemetryRouter);
-
-app.get("/", (_req, res) => {
-  res.json({
-    success: true,
-    message: "FleetDash backend is running",
-  });
-});
+const PORT = Number(process.env.PORT) || 5000;
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Frame format (same as frontend):
-// har vehicle ke 16 bytes = [uint32 id][float32 lat][float32 lng][float32 speed]
 const VEHICLE_COUNT = 100;
 const FIELDS_PER_RECORD = 4;
 const BYTES_PER_RECORD = 16;
@@ -47,11 +32,21 @@ io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 });
 
-// Dummy data: har 100ms me ek frame (abhi random, baad me real data aayega)
 setInterval(() => {
   io.emit("telemetry:frame", buildFrame(VEHICLE_COUNT));
 }, 100);
 
-server.listen(PORT, () => {
-  console.log(`FleetDash backend running on port ${PORT}`);
-});
+async function startServer(): Promise<void> {
+  try {
+    await connectDB();
+
+    server.listen(PORT, () => {
+      console.log(`FleetDash backend running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start FleetDash backend:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
