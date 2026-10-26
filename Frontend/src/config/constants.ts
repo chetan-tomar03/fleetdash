@@ -8,9 +8,3 @@ export const SOCKET_EVENTS = {
 // repeating 16-byte records: [uint32 id][float32 lat][float32 lng][float32 speed km/h]
 export const FRAME_FIELDS_PER_RECORD = 4;
 export const FRAME_BYTES_PER_RECORD = 16;
-
-// A vehicle is "moving" above this speed (km/h).
-export const MOVING_SPEED_THRESHOLD = 0.5;
-
-// Vehicle list shows at most this many rows (avoids DOM overload).
-export const MAX_LIST_ROWS = 100;

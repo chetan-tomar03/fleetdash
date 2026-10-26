@@ -6,7 +6,3 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_VEHICLE_COUNT?: string;
   readonly VITE_MOCK_HZ?: string;
 }
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
