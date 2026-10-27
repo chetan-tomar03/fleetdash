@@ -5,7 +5,8 @@ if (!parentPort) {
   throw new Error("Telemetry worker must run inside a worker thread");
 }
 
-parentPort.on("message", (telemetry: unknown) => {
+parentPort.on("message", (job: { id: number; payload: unknown }) => {
+  const telemetry = job.payload;
   try {
     const readings = Array.isArray(telemetry) ? telemetry : [telemetry];
 
@@ -31,15 +32,13 @@ parentPort.on("message", (telemetry: unknown) => {
     });
 
     parentPort!.postMessage({
+      id: job.id,
       success: true,
       received: readings.length,
       validCount: validReadings.length,
       validReadings,
     });
   } catch {
-    parentPort!.postMessage({
-      success: false,
-      message: "Telemetry processing failed",
-    });
+    parentPort!.postMessage({ id: job.id, success: false, message: "Telemetry processing failed" });
   }
 });
