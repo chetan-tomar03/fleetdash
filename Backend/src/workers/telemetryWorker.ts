@@ -1,14 +1,19 @@
-
 import { parentPort } from "worker_threads";
 
 if (!parentPort) {
   throw new Error("Telemetry worker must run inside a worker thread");
 }
 
-parentPort.on("message", (job: { id: number; payload: unknown }) => {
-  const telemetry = job.payload;
+const port = parentPort;
+
+interface TelemetryJob {
+  id: number;
+  payload: unknown;
+}
+
+port.on("message", (job: TelemetryJob) => {
   try {
-    const readings = Array.isArray(telemetry) ? telemetry : [telemetry];
+    const readings = Array.isArray(job.payload) ? job.payload : [job.payload];
 
     const validReadings = readings.filter((reading) => {
       if (typeof reading !== "object" || reading === null) {
@@ -16,6 +21,11 @@ parentPort.on("message", (job: { id: number; payload: unknown }) => {
       }
 
       const item = reading as Record<string, unknown>;
+
+      const hasValidTimestamp =
+        item.timestamp === undefined ||
+        ((typeof item.timestamp === "string" || typeof item.timestamp === "number") &&
+          !Number.isNaN(new Date(item.timestamp).getTime()));
 
       return (
         typeof item.vehicleId === "string" &&
@@ -27,11 +37,12 @@ parentPort.on("message", (job: { id: number; payload: unknown }) => {
         typeof item.longitude === "number" &&
         Number.isFinite(item.longitude) &&
         item.longitude >= -180 &&
-        item.longitude <= 180
+        item.longitude <= 180 &&
+        hasValidTimestamp
       );
     });
 
-    parentPort!.postMessage({
+    port.postMessage({
       id: job.id,
       success: true,
       received: readings.length,
@@ -39,6 +50,13 @@ parentPort.on("message", (job: { id: number; payload: unknown }) => {
       validReadings,
     });
   } catch {
-    parentPort!.postMessage({ id: job.id, success: false, message: "Telemetry processing failed" });
+    port.postMessage({
+      id: job.id,
+      success: false,
+      received: 0,
+      validCount: 0,
+      validReadings: [],
+      message: "Telemetry processing failed",
+    });
   }
 });
