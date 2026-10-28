@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec \"tsc && node dist/server.js\"",
-    "build": "tsc"
+    "build": "tsc",
+    "loadtest": "node scripts/loadtest.js"
   },
   "keywords": [],
   "author": "",

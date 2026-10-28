@@ -33,7 +33,14 @@ interface BucketGroup {
   maxTime: Date;
 }
 
-// Ek hi worker, server ke saath hamesha chalta hai (har request par naya nahi banta)
+interface QueuedWrite {
+  readings: TelemetryReading[];
+  resolve: () => void;
+  reject: (error: unknown) => void;
+}
+
+// ---------- Worker (one worker for the whole server lifetime) ----------
+
 const worker = new Worker(path.resolve(__dirname, "../workers/telemetryWorker.js"));
 const pending = new Map<number, (result: WorkerResult) => void>();
 let nextJobId = 0;
@@ -73,6 +80,8 @@ function parseInWorker(payload: unknown): Promise<WorkerResult> {
   });
 }
 
+// ---------- Bucket building ----------
+
 function groupIntoBuckets(readings: TelemetryReading[]): BucketGroup[] {
   const groups = new Map<string, BucketGroup>();
 
@@ -110,26 +119,8 @@ function groupIntoBuckets(readings: TelemetryReading[]): BucketGroup[] {
   return [...groups.values()];
 }
 
-function isDuplicateKeyError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: number }).code === 11000
-  );
-}
-
-export async function processTelemetry(telemetry: unknown): Promise<WorkerResult> {
-  const result = await parseInWorker(telemetry);
-
-  if (!result.success) {
-    throw new Error(result.message || "Telemetry processing failed");
-  }
-
-  if (result.validCount === 0) {
-    return result;
-  }
-
-  const operations = groupIntoBuckets(result.validReadings).map((group) => ({
+function buildOperations(readings: TelemetryReading[]) {
+  return groupIntoBuckets(readings).map((group) => ({
     updateOne: {
       filter: { vehicleId: group.vehicleId, bucketStart: group.bucketStart },
       update: {
@@ -142,18 +133,93 @@ export async function processTelemetry(telemetry: unknown): Promise<WorkerResult
       upsert: true,
     },
   }));
+}
+
+// If every failed operation is a duplicate key error (two writers created the same new bucket
+// at the same time), return the indexes of only those operations so they can be retried safely.
+function getDuplicateKeyIndexes(error: unknown): number[] | null {
+  if (typeof error !== "object" || error === null) return null;
+
+  const writeErrors = (error as { writeErrors?: { index: number; code: number }[] }).writeErrors;
+  if (!Array.isArray(writeErrors) || writeErrors.length === 0) return null;
+  if (!writeErrors.every((item) => item.code === 11000)) return null;
+
+  return writeErrors.map((item) => item.index);
+}
+
+async function writeReadings(readings: TelemetryReading[]): Promise<void> {
+  const operations = buildOperations(readings);
+  if (operations.length === 0) return;
 
   try {
     await TelemetryBucket.bulkWrite(operations, { ordered: false });
   } catch (error) {
-    // Do requests ek saath same naya bucket banayein to ek ko duplicate key error aata hai.
-    // Dobara try karne par bucket mil jata hai aur update chal jata hai.
-    if (isDuplicateKeyError(error)) {
-      await TelemetryBucket.bulkWrite(operations, { ordered: false });
-    } else {
-      throw error;
-    }
+    const failedIndexes = getDuplicateKeyIndexes(error);
+    if (failedIndexes === null) throw error;
+
+    // Retry only the operations that failed, so nothing is counted twice
+    await TelemetryBucket.bulkWrite(
+      failedIndexes.map((index) => operations[index]),
+      { ordered: false }
+    );
+  }
+}
+
+// ---------- Write batching ----------
+// Many requests arrive every second. Instead of one database call per request,
+// we collect readings for a short time and save them all with a single bulkWrite.
+// Each request still waits until its readings are saved before it gets a response.
+
+const FLUSH_INTERVAL_MS = 25;
+const queue: QueuedWrite[] = [];
+let flushTimer: NodeJS.Timeout | null = null;
+let flushing = false;
+
+function scheduleFlush(): void {
+  if (flushTimer || flushing) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    void flushQueue();
+  }, FLUSH_INTERVAL_MS);
+}
+
+async function flushQueue(): Promise<void> {
+  if (flushing || queue.length === 0) return;
+
+  flushing = true;
+  const batch = queue.splice(0, queue.length);
+
+  try {
+    await writeReadings(batch.flatMap((item) => item.readings));
+    batch.forEach((item) => item.resolve());
+  } catch (error) {
+    batch.forEach((item) => item.reject(error));
+  } finally {
+    flushing = false;
+    if (queue.length > 0) scheduleFlush();
+  }
+}
+
+function enqueueWrite(readings: TelemetryReading[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    queue.push({ readings, resolve, reject });
+    scheduleFlush();
+  });
+}
+
+// ---------- Public API ----------
+
+export async function processTelemetry(telemetry: unknown): Promise<WorkerResult> {
+  const result = await parseInWorker(telemetry);
+
+  if (!result.success) {
+    throw new Error(result.message || "Telemetry processing failed");
   }
 
+  if (result.validCount === 0) {
+    return result;
+  }
+
+  await enqueueWrite(result.validReadings);
   return result;
 }
