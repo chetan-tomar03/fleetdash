@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { processTelemetry } from "../services/telemetryService";
+import { MAX_READINGS_PER_REQUEST, processTelemetry } from "../services/telemetryService";
 
 const router = Router();
 
@@ -14,6 +14,13 @@ router.post("/", async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: "Invalid telemetry data",
+    });
+  }
+
+  if (Array.isArray(telemetry) && telemetry.length > MAX_READINGS_PER_REQUEST) {
+    return res.status(413).json({
+      success: false,
+      message: `Maximum ${MAX_READINGS_PER_REQUEST} telemetry readings per request`,
     });
   }
 
@@ -35,6 +42,13 @@ router.post("/", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Telemetry worker error:", error);
+
+    if (error instanceof Error && error.message === "Telemetry write queue is full") {
+      return res.status(503).json({
+        success: false,
+        message: "Telemetry ingestion queue is full; retry later",
+      });
+    }
 
     return res.status(500).json({
       success: false,

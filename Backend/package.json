@@ -7,18 +7,21 @@
     "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec \"tsc && node dist/server.js\"",
     "build": "tsc",
-    "loadtest": "node scripts/loadtest.js"
+    "loadtest": "node scripts/loadtest.js",
+    "profile:db": "node scripts/profile-db.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@turf/boolean-point-in-polygon": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
     "cors": "^2.8.6",
     "dotenv": "^16.0.0",
     "express": "^5.3.0",
-    "socket.io": "^4.8.4",
-    "mongoose": "^9.11.3"
+    "mongoose": "^9.11.3",
+    "socket.io": "^4.8.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

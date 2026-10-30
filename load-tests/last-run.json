@@ -1,1 +1,1 @@
-{"requests":36357,"accepted":36357,"failedPercent":0,"avgMs":705.9743527188762,"p95Ms":1194.948179999999,"dropped":23847}
+{"runId":"t200x1793299835688","targetRate":200,"durationSeconds":10,"totalRunSeconds":10.027406000000001,"requests":2001,"accepted":1941,"acceptedRequests":1941,"achievedRate":200.1,"failedPercent":2.998500749625187,"avgMs":15.259086306846571,"p95Ms":87.8659,"dropped":0}
