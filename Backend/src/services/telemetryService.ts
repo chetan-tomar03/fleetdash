@@ -1,6 +1,5 @@
 
-import { Worker } from "worker_threads";
-import path from "path";
+import { telemetryWorkerPool } from "../workers/workerPool";
 import TelemetryBucket from "../models/TelemetryBucket";
 
 interface TelemetryReading {
@@ -21,28 +20,7 @@ interface WorkerResult {
 export async function processTelemetry(
   telemetry: unknown
 ): Promise<WorkerResult> {
-  const result = await new Promise<WorkerResult>((resolve, reject) => {
-    const workerPath = path.resolve(
-      __dirname,
-      "../workers/telemetryWorker.js"
-    );
-
-    const worker = new Worker(workerPath);
-
-    worker.once("message", (data: WorkerResult) => {
-      resolve(data);
-    });
-
-    worker.once("error", reject);
-
-    worker.once("exit", (code) => {
-      if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`));
-      }
-    });
-
-    worker.postMessage(telemetry);
-  });
+  const result = await telemetryWorkerPool.execute(telemetry);
 
   if (!result.success) {
     throw new Error(result.message || "Telemetry processing failed");
