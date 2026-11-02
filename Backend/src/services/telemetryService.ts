@@ -1,6 +1,7 @@
 
 import { telemetryWorkerPool } from "../workers/workerPool";
 import TelemetryBucket from "../models/TelemetryBucket";
+import redisClient from "../config/redis";
 
 interface TelemetryReading {
   vehicleId: string;
@@ -26,6 +27,9 @@ export async function processTelemetry(
     throw new Error(result.message || "Telemetry processing failed");
   }
 
+  const operations = [];
+  const publishReadings: TelemetryReading[] = [];
+
   for (const reading of result.validReadings) {
     const timestamp = reading.timestamp
       ? new Date(reading.timestamp)
@@ -41,30 +45,64 @@ export async function processTelemetry(
     const bucketEnd = new Date(bucketStart);
     bucketEnd.setUTCHours(bucketEnd.getUTCHours() + 1);
 
-    await TelemetryBucket.updateOne(
-      {
-        vehicleId: reading.vehicleId,
-        bucketStart,
-      },
-      {
-        $setOnInsert: {
+    operations.push({
+      updateOne: {
+        filter: {
           vehicleId: reading.vehicleId,
           bucketStart,
-          bucketEnd,
         },
-        $push: {
-          readings: {
-            latitude: reading.latitude,
-            longitude: reading.longitude,
-            timestamp,
+        update: {
+          $setOnInsert: {
+            vehicleId: reading.vehicleId,
+            bucketStart,
+            bucketEnd,
           },
+          $push: {
+            readings: {
+              latitude: reading.latitude,
+              longitude: reading.longitude,
+              timestamp,
+            },
+          },
+          $inc: { count: 1 },
+          $min: { minTime: timestamp },
+          $max: { maxTime: timestamp },
         },
-        $inc: { count: 1 },
-        $min: { minTime: timestamp },
-        $max: { maxTime: timestamp },
+        upsert: true,
       },
-      { upsert: true }
+    });
+
+    publishReadings.push({
+      ...reading,
+      timestamp,
+    });
+  }
+
+  // Perform MongoDB operations in one bulk request
+  if (operations.length > 0) {
+    await TelemetryBucket.bulkWrite(operations, {
+      ordered: true,
+    });
+
+    console.log(
+      `MongoDB bulk write completed: ${operations.length} readings`
     );
+  }
+
+  // Publish processed readings to Redis
+  if (publishReadings.length > 0) {
+    try {
+      await redisClient.publish(
+        "fleetdash:telemetry",
+        JSON.stringify(publishReadings)
+      );
+
+      console.log(
+        `Published ${publishReadings.length} readings to Redis`
+      );
+    } catch (error) {
+      console.error("Redis publish failed:", error);
+    }
   }
 
   return result;
